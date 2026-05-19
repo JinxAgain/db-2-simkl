@@ -15,47 +15,49 @@ This project automatically syncs your Douban watched/plan-to-watch history to Si
 3. Create a **Simkl Developer App** to get your API keys:
    - Go to [Simkl Developer Settings](https://simkl.com/settings/developer/new/) and create a new app.
    - **Name**: e.g. `douban-sync`
-   - **Redirect URI**: Enter `urn:ietf:wg:oauth:2.0:oob` (this enables PIN authentication).
+   - **Redirect URI**: Enter `http://localhost` (this bypasses browser hang issues).
    - Click **Save Changes** to get your **Client ID** and **Client Secret**.
 4. Obtain your **Simkl Access Token**:
    You can choose one of the following methods to get your token:
    
    * **Method A: Browser Console (Easiest - No Installation)**
-     1. Open this URL in your browser: `https://simkl.com/oauth/authorize?response_type=code&client_id=YOUR_CLIENT_ID&redirect_uri=urn:ietf:wg:oauth:2.0:oob` (replace `YOUR_CLIENT_ID` with yours).
-     2. Click **Authorize** and copy the **PIN Code** displayed on the screen.
-     3. Open any webpage (e.g. `google.com`), press `F12` (or right-click -> **Inspect**), and click the **Console** tab.
-     4. Paste the following JavaScript code (replace the placeholders) and press Enter:
+     1. Open this URL in your browser: `https://simkl.com/oauth/authorize?response_type=code&client_id=YOUR_CLIENT_ID&redirect_uri=http://localhost` (replace `YOUR_CLIENT_ID` with yours).
+     2. Click **Authorize**.
+     3. Your browser will redirect to a blank/error page showing `http://localhost/?code=XXXXXX`. **This is normal**.
+     4. Look at the browser's address bar, and copy the code after `?code=`.
+     5. Open any webpage (e.g. `google.com`), press `F12` (or right-click -> **Inspect**), and click the **Console** tab.
+     6. Paste the following JavaScript code (replace the placeholders) and press Enter:
         ```javascript
         fetch('https://api.simkl.com/oauth/token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            code: "YOUR_PIN_CODE",
+            code: "YOUR_COPIED_CODE",
             client_id: "YOUR_CLIENT_ID",
             client_secret: "YOUR_CLIENT_SECRET",
-            redirect_uri: "urn:ietf:wg:oauth:2.0:oob",
+            redirect_uri: "http://localhost",
             grant_type: "authorization_code"
           })
         }).then(res => res.json()).then(console.log);
         ```
-     5. The console will print a JSON response containing your `"access_token"`.
+     7. The console will print a JSON response containing your `"access_token"`.
      
    * **Method B: Python Script (Interactive)**
      - Run the helper script locally in your terminal:
        ```bash
        python get_token.py
        ```
-     - Follow the prompts to get your `SIMKL_ACCESS_TOKEN`.
+     - Follow the prompts (it will ask you to visit the auth link, authorize, and paste the code from the address bar) to print your `SIMKL_ACCESS_TOKEN`.
      
    * **Method C: Online API Tool (Hoppscotch / Postman)**
      - Use a tool like [Hoppscotch](https://hoppscotch.io/).
      - Send a `POST` request to `https://api.simkl.com/oauth/token` with Body type `application/json` and the payload:
        ```json
        {
-         "code": "YOUR_PIN_CODE",
+         "code": "YOUR_COPIED_CODE",
          "client_id": "YOUR_CLIENT_ID",
          "client_secret": "YOUR_CLIENT_SECRET",
-         "redirect_uri": "urn:ietf:wg:oauth:2.0:oob",
+         "redirect_uri": "http://localhost",
          "grant_type": "authorization_code"
        }
        ```

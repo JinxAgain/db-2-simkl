@@ -370,9 +370,17 @@ def resolve_media_type_via_simkl(imdb_id):
     if not client_id or not imdb_id:
         return None
     url = "https://api.simkl.com/search/id"
-    params = {"imdb": imdb_id, "client_id": client_id}
+    params = {
+        "imdb": imdb_id,
+        "client_id": client_id,
+        "app-name": "douban-to-simkl-sync",
+        "app-version": "1.0"
+    }
+    headers = {
+        "User-Agent": "DoubanToSimklSync/1.0"
+    }
     try:
-        res = requests.get(url, params=params)
+        res = requests.get(url, params=params, headers=headers)
         if res.status_code == 200:
             data = res.json()
             if data and isinstance(data, list) and len(data) > 0:
@@ -393,10 +401,17 @@ def sync_to_simkl(tmdb_id, imdb_id, media_type, season_number, action, title=Non
         print("Warning: Simkl credentials not provided. Skipping sync.")
         return False
         
+    params = {
+        "client_id": client_id or "",
+        "app-name": "douban-to-simkl-sync",
+        "app-version": "1.0"
+    }
+    
     headers = {
         "Content-Type": "application/json",
         "simkl-api-key": client_id or "",
-        "Authorization": f"Bearer {access_token or ''}"
+        "Authorization": f"Bearer {access_token or ''}",
+        "User-Agent": "DoubanToSimklSync/1.0"
     }
     
     # Base item object
@@ -448,7 +463,7 @@ def sync_to_simkl(tmdb_id, imdb_id, media_type, season_number, action, title=Non
         success = True
     else:
         try:
-            res = requests.post(url, headers=headers, json=payload)
+            res = requests.post(url, headers=headers, params=params, json=payload)
             if res.status_code in [200, 201]:
                 print(f"Successfully synced {title or 'item'} to Simkl ({action}).")
                 success = True
@@ -461,6 +476,10 @@ def sync_to_simkl(tmdb_id, imdb_id, media_type, season_number, action, title=Non
             
     # Also sync rating to `/sync/ratings` if rating is provided
     if success and rating is not None:
+        # Rate limiting: Sleep 1 second before sending the second POST request to Simkl
+        if not dry_run:
+            time.sleep(1.0)
+            
         rating_url = "https://api.simkl.com/sync/ratings"
         
         rating_obj = {
@@ -479,7 +498,7 @@ def sync_to_simkl(tmdb_id, imdb_id, media_type, season_number, action, title=Non
             print(json.dumps(rating_payload, indent=2, ensure_ascii=False))
         else:
             try:
-                res_rating = requests.post(rating_url, headers=headers, json=rating_payload)
+                res_rating = requests.post(rating_url, headers=headers, params=params, json=rating_payload)
                 if res_rating.status_code in [200, 201]:
                     print(f"Successfully added rating {rating} for {title or 'item'}.")
                 else:

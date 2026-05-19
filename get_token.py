@@ -4,17 +4,22 @@ def main():
     print("==================================================")
     print("             Simkl OAuth Token Helper             ")
     print("==================================================")
+    print("Note: Please make sure your Simkl App's Redirect URI")
+    print("is set to 'http://localhost' in Simkl Settings.\n")
     
     client_id = input("1. Enter your Simkl Client ID: ").strip()
     client_secret = input("2. Enter your Simkl Client Secret: ").strip()
     
-    redirect_uri = "urn:ietf:wg:oauth:2.0:oob"
+    redirect_uri = "http://localhost"
     auth_url = f"https://simkl.com/oauth/authorize?response_type=code&client_id={client_id}&redirect_uri={redirect_uri}"
     
     print("\n3. Open the following URL in your web browser to authorize the application:")
     print(f"\n   {auth_url}\n")
+    print("   After authorizing, your browser will redirect to a blank or broken localhost page.")
+    print("   Look at your browser's address bar and copy the code after '?code='.")
+    print("   Example URL: http://localhost/?code=ABC123XYZ... -> copy 'ABC123XYZ...'")
     
-    pin = input("4. Enter the PIN/Authorization Code displayed on your screen: ").strip()
+    pin = input("\n4. Enter the code copied from the address bar: ").strip()
     
     token_url = "https://api.simkl.com/oauth/token"
     payload = {
