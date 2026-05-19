@@ -435,7 +435,8 @@ def sync_to_simkl(tmdb_id, imdb_id, media_type, season_number, action, title=Non
     if rating is not None:
         item_obj["rating"] = rating
     if memo:
-        item_obj["memo"] = {"text": memo[:140]}
+        truncated_memo = memo if len(memo) <= 140 else memo[:137] + "..."
+        item_obj["memo"] = {"text": truncated_memo}
         
     # Construct list wrapper (movies or shows)
     plural_type = media_type + "s" # "movies" or "shows"
