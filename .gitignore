@@ -1,0 +1,31 @@
+# Local test data and HTML dumps
+interests.xml
+douban_page.html
+simkl.apib
+
+# Scratch and test scripts
+analyze_douban_page.py
+test_extract.py
+test_fetch.py
+test_uas.py
+scratch/
+test_*.py
+
+# Python caches and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environment files
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# System files
+.DS_Store
+Thumbs.db
