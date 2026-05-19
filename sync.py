@@ -269,6 +269,16 @@ def clean_title_for_search(title):
         return clean_title, season_num
     return title, None
 
+def get_parent_imdb_id(show_id, headers, params):
+    try:
+        url = f"https://api.themoviedb.org/3/tv/{show_id}/external_ids"
+        res = requests.get(url, headers=headers, params=params)
+        if res.status_code == 200:
+            return res.json().get("imdb_id")
+    except Exception as e:
+        print(f"Error fetching parent show IMDb ID for TMDB ID {show_id}: {e}")
+    return None
+
 def resolve_tmdb(title, original_title, imdb_id):
     tmdb_api_key = os.environ.get("TMDB_API_KEY")
     tmdb_bearer = os.environ.get("TMDB_BEARER_TOKEN")
@@ -283,7 +293,7 @@ def resolve_tmdb(title, original_title, imdb_id):
         
     if not tmdb_api_key and not tmdb_bearer:
         print("Warning: Neither TMDB_API_KEY nor TMDB_BEARER_TOKEN is set. TMDB resolution will fail.")
-        return None, None, None
+        return None, None, None, None
 
     # Try resolving via IMDb ID first
     if imdb_id:
@@ -294,15 +304,19 @@ def resolve_tmdb(title, original_title, imdb_id):
             if res.status_code == 200:
                 data = res.json()
                 if data.get("movie_results"):
-                    return data["movie_results"][0]["id"], "movie", None
+                    return data["movie_results"][0]["id"], "movie", None, imdb_id
                 elif data.get("tv_results"):
-                    return data["tv_results"][0]["id"], "show", None
+                    return data["tv_results"][0]["id"], "show", None, imdb_id
                 elif data.get("tv_episode_results"):
                     ep = data["tv_episode_results"][0]
-                    return ep["show_id"], "show", ep.get("season_number")
+                    show_id = ep["show_id"]
+                    parent_imdb = get_parent_imdb_id(show_id, headers, params)
+                    return show_id, "show", ep.get("season_number"), parent_imdb
                 elif data.get("tv_season_results"):
                     season = data["tv_season_results"][0]
-                    return season["show_id"], "show", season.get("season_number")
+                    show_id = season["show_id"]
+                    parent_imdb = get_parent_imdb_id(show_id, headers, params)
+                    return show_id, "show", season.get("season_number"), parent_imdb
         except Exception as e:
             print(f"Error calling TMDB find API for {imdb_id}: {e}")
             
@@ -319,7 +333,13 @@ def resolve_tmdb(title, original_title, imdb_id):
                     for item in data["results"]:
                         if item.get("media_type") in ["movie", "tv"]:
                             media_type = "movie" if item["media_type"] == "movie" else "show"
-                            return item["id"], media_type, parsed_season_orig
+                            parent_imdb = None
+                            if media_type == "show":
+                                parent_imdb = get_parent_imdb_id(item["id"], headers, params)
+                            else:
+                                # For movies, try to get IMDb ID from movie details if needed, or leave None
+                                pass
+                            return item["id"], media_type, parsed_season_orig, parent_imdb
         except Exception as e:
             print(f"Error calling TMDB search API for original title {original_title}: {e}")
 
@@ -336,11 +356,14 @@ def resolve_tmdb(title, original_title, imdb_id):
                     for item in data["results"]:
                         if item.get("media_type") in ["movie", "tv"]:
                             media_type = "movie" if item["media_type"] == "movie" else "show"
-                            return item["id"], media_type, parsed_season
+                            parent_imdb = None
+                            if media_type == "show":
+                                parent_imdb = get_parent_imdb_id(item["id"], headers, params)
+                            return item["id"], media_type, parsed_season, parent_imdb
         except Exception as e:
             print(f"Error calling TMDB search API for {title}: {e}")
 
-    return None, None, None
+    return None, None, None, None
 
 def resolve_media_type_via_simkl(imdb_id):
     client_id = os.environ.get("SIMKL_CLIENT_ID")
@@ -356,7 +379,7 @@ def resolve_media_type_via_simkl(imdb_id):
                 simkl_type = data[0].get("type")
                 if simkl_type == "movie":
                     return "movie"
-                elif simkl_type in ["tv", "show"]:
+                elif simkl_type in ["tv", "show", "episode"]:
                     return "show"
     except Exception as e:
         print(f"Error querying Simkl ID lookup: {e}")
@@ -512,7 +535,7 @@ def main():
         print(f"Extracted IMDb ID: {imdb_id}, Extracted Year: {extracted_year}")
         
         # Try TMDB first
-        tmdb_id, media_type, season_number = resolve_tmdb(item['title'], item['original_title'], imdb_id)
+        tmdb_id, media_type, season_number, parent_imdb_id = resolve_tmdb(item['title'], item['original_title'], imdb_id)
         
         # If TMDB failed but we have IMDb ID, resolve type via Simkl or title heuristics
         if not media_type and imdb_id:
@@ -527,10 +550,24 @@ def main():
                 else:
                     media_type = "movie"
                     
+        # Resolve final IMDb ID to send to Simkl (ensure shows get parent IMDb ID, not episode IMDb ID)
+        final_imdb_id = imdb_id
+        if media_type == "show":
+            if parent_imdb_id:
+                final_imdb_id = parent_imdb_id
+            else:
+                # If we have a season number or it's a TV show, and we didn't resolve parent show IMDb ID,
+                # the extracted IMDb ID from Douban is likely episode-specific. We set final_imdb_id to None
+                # so Simkl matches by TMDB ID or title/year instead of mismatching on the episode ID.
+                # Only keep original imdb_id if season is None and we didn't parse any season number from title.
+                clean_title, parsed_season = clean_title_for_search(item['title'])
+                if season_number is not None or parsed_season is not None:
+                    final_imdb_id = None
+                    
         if media_type:
             # We can sync! (We have either tmdb_id, or at least imdb_id + media_type)
             print(f"Syncing item: {item['original_title'] or item['title']}")
-            print(f"  IMDb ID: {imdb_id}")
+            print(f"  IMDb ID: {final_imdb_id} (original: {imdb_id})")
             print(f"  TMDB ID: {tmdb_id}")
             print(f"  Type: {media_type}")
             print(f"  Season: {season_number}")
@@ -538,7 +575,7 @@ def main():
             
             success = sync_to_simkl(
                 tmdb_id=tmdb_id,
-                imdb_id=imdb_id,
+                imdb_id=final_imdb_id,
                 media_type=media_type,
                 season_number=season_number,
                 action=item["action"],
