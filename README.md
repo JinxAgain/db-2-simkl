@@ -1,32 +1,50 @@
-# Douban to Simkl Sync
+# Douban Sync Tools (Simkl & NeoDB)
 
-This project automatically syncs your Douban watched/plan-to-watch history to Simkl using GitHub Actions. It supports movies and TV shows, intelligently handling TV show season mapping using TMDB's API.
+This repository contains two independent, automatic synchronization tools powered by GitHub Actions. They allow you to sync your Douban movie, TV show, and animation watch history ("看过" and "想看") to two major platforms: **Simkl** and **NeoDB**.
 
-## Features
-- **Automatic Sync**: Uses GitHub Actions to run every 6 hours and process your Douban RSS feed.
-- **Accurate TV Show Mapping**: Solves the common Douban problem where a TV show's page only gives the IMDb ID of a single episode. This script uses TMDB to correctly map that episode to the parent show and the specific season on Simkl.
-- **Fallback Search**: If Douban is missing the IMDb ID, it will fallback to searching TMDB using the Chinese title.
+---
 
-## How to use
+## Architecture & Features
 
-1. **Fork this repository** to your own GitHub account.
-2. Edit the `config.json` file in your repository:
-   - Change `douban_id` to your own Douban ID. You can find this in your Douban personal page URL (`https://www.douban.com/people/YOUR_ID/`).
-3. Create a **Simkl Developer App** to get your API keys:
-   - Go to [Simkl Developer Settings](https://simkl.com/settings/developer/new/) and create a new app.
-   - **Name**: e.g. `douban-sync`
-   - **Redirect URI**: Enter `http://localhost` (this bypasses browser hang issues).
-   - Click **Save Changes** to get your **Client ID** and **Client Secret**.
-4. Obtain your **Simkl Access Token**:
-   You can choose one of the following methods to get your token:
-   
-   * **Method A: Browser Console (Easiest - No Installation)**
-     1. Open this URL in your browser: `https://simkl.com/oauth/authorize?response_type=code&client_id=YOUR_CLIENT_ID&redirect_uri=http://localhost` (replace `YOUR_CLIENT_ID` with yours).
-     2. Click **Authorize**.
-     3. Your browser will redirect to a blank/error page showing `http://localhost/?code=XXXXXX`. **This is normal**.
-     4. Look at the browser's address bar, and copy the code after `?code=`.
-     5. Open any webpage (e.g. `google.com`), press `F12` (or right-click -> **Inspect**), and click the **Console** tab.
-     6. Paste the following JavaScript code (replace the placeholders) and press Enter:
+### 🎬 Douban to Simkl Sync
+* **Script**: [`sync_simkl.py`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/sync_simkl.py)
+* **Workflow**: Runs every 6 hours and manually ([`douban_simkl_sync.yml`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/.github/workflows/douban_simkl_sync.yml))
+* **Season-Level Accuracy**: Solves the common Douban problem where a TV show page only maps to the IMDb ID of a single episode. The script uses the TMDB API to resolve the parent show and season number, allowing Simkl to mark the correct season as watched.
+* **Fallbacks**: Searches TMDB by original/Chinese titles if Douban is missing the IMDb ID.
+* **Status History**: Saved in `sync_history.json`.
+
+### 🌐 Douban to NeoDB Sync
+* **Script**: [`sync_neodb.py`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/sync_neodb.py)
+* **Workflow**: Runs every 6 hours and manually ([`douban_neodb_sync.yml`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/.github/workflows/douban_neodb_sync.yml))
+* **Native Douban Mapping**: Directly queries NeoDB's catalog fetch API (`/api/catalog/fetch`) using the Douban URL to locate the exact item, avoiding metadata mismatch issues.
+* **Unlimited Comment Length**: NeoDB has no character limits on comments. The script uploads your full, untruncated Douban reviews and notes to your NeoDB timeline/shelf.
+* **Precise Ratings**: Extracts half-star ratings (e.g. `3.5` stars becomes `7` out of 10) directly from Douban notes.
+* **Status History**: Saved in `sync_history_neodb.json`.
+
+---
+
+## Setup Guide
+
+### 1. Initial Configuration (Shared)
+1. **Fork** this repository to your own GitHub account.
+2. Edit [`config.json`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/config.json) in your repository:
+   - `douban_id`: Change this to your Douban username/ID (found in your Douban homepage URL `https://www.douban.com/people/YOUR_ID/`).
+   - `sync_delay_seconds`: The delay (in seconds) between requests to avoid rate limits.
+
+---
+
+### 2. Configure Simkl Sync (Optional)
+If you want to sync to Simkl, complete these steps:
+
+1. **Create a Simkl Developer App**:
+   - Go to [Simkl Developer Settings](https://simkl.com/settings/developer/new/).
+   - Set **Redirect URI** to `http://localhost`.
+   - Save to get your **Client ID** and **Client Secret**.
+2. **Obtain your Simkl Access Token** (Choose one):
+   * **Method A (Web Console)**:
+     1. Open in browser: `https://simkl.com/oauth/authorize?response_type=code&client_id=YOUR_CLIENT_ID&redirect_uri=http://localhost`
+     2. Authorize, then copy the code from the redirected URL `http://localhost/?code=YOUR_CODE`.
+     3. Open any webpage, press `F12` to open the Developer Console, and run:
         ```javascript
         fetch('https://api.simkl.com/oauth/token', {
           method: 'POST',
@@ -40,44 +58,32 @@ This project automatically syncs your Douban watched/plan-to-watch history to Si
           })
         }).then(res => res.json()).then(console.log);
         ```
-     7. The console will print a JSON response containing your `"access_token"`.
-     
-   * **Method B: Python Script (Interactive)**
-     - Run the helper script locally in your terminal:
-       ```bash
-       python get_token.py
-       ```
-     - Follow the prompts (it will ask you to visit the auth link, authorize, and paste the code from the address bar) to print your `SIMKL_ACCESS_TOKEN`.
-     
-   * **Method C: Online API Tool (Hoppscotch / Postman)**
-     - Use a tool like [Hoppscotch](https://hoppscotch.io/).
-     - Send a `POST` request to `https://api.simkl.com/oauth/token` with Body type `application/json` and the payload:
-       ```json
-       {
-         "code": "YOUR_COPIED_CODE",
-         "client_id": "YOUR_CLIENT_ID",
-         "client_secret": "YOUR_CLIENT_SECRET",
-         "redirect_uri": "http://localhost",
-         "grant_type": "authorization_code"
-       }
-       ```
-5. Set up **GitHub Secrets**:
-   Go to your repository settings: `Settings > Secrets and variables > Actions > New repository secret`.
-   Add the following secrets:
-   - `TMDB_API_KEY`: Your TMDB API Key. (Get one for free at [TMDB](https://www.themoviedb.org/settings/api))
+     4. Copy the resulting `"access_token"`.
+   * **Method B (Python Script)**:
+     - Run `python get_token.py` locally and follow the interactive prompts.
+3. **Save Simkl Secrets**:
+   Go to your GitHub repo -> `Settings > Secrets and variables > Actions > New repository secret` and add:
+   - `TMDB_API_KEY`: Your TMDB API Key (Free at [TMDB](https://www.themoviedb.org/)).
    - `SIMKL_CLIENT_ID`: Your Simkl Client ID.
-   - `SIMKL_ACCESS_TOKEN`: The access token you obtained in Step 4.
-   
-   *(Note: You can use `TMDB_BEARER_TOKEN` instead of `TMDB_API_KEY` if you prefer to use the API Read Access Token.)*
-6. Enable **GitHub Actions**:
-   - Go to the `Actions` tab in your repository and enable workflows.
-   - You can trigger the workflow manually by clicking on `Douban to Simkl Sync` -> `Run workflow`.
-   - After the first run, it will automatically run every 6 hours to sync new items.
+   - `SIMKL_ACCESS_TOKEN`: The Simkl Access Token you generated.
 
-## How it works
+---
 
-1. It fetches your public Douban RSS feed (`https://www.douban.com/feed/people/{your_id}/interests`).
-2. For each new item ("看过" or "想看"), it fetches the Douban page and extracts the `IMDb: tt...` ID.
-3. It uses TMDB API's `/find` endpoint to resolve the exact TMDB ID, Media Type (movie/show), and Season Number.
-4. It calls Simkl's `/sync/history` or `/sync/add-to-list` API to accurately sync the record.
-5. Processed items are saved in `sync_history.json` and committed back to the repository so they are not synced twice.
+### 3. Configure NeoDB Sync (Optional)
+If you want to sync to NeoDB, complete these steps:
+
+1. **Obtain your NeoDB Access Token**:
+   - Go to the developer console page of your NeoDB instance (e.g. `https://neodb.social/developer/` or `https://neodb.net/developer/`).
+   - Log in, expand the **Test Access Token** section, click **Generate**, and copy the token.
+2. **Save NeoDB Secrets**:
+   Go to your GitHub repo -> `Settings > Secrets and variables > Actions > New repository secret` and add:
+   - `NEODB_ACCESS_TOKEN`: The token you just copied.
+   - `NEODB_INSTANCE_DOMAIN` (Optional): The domain of your NeoDB instance (defaults to `neodb.social`). If you use a different instance (like `neodb.net`), set this secret to your instance's domain name.
+
+---
+
+### 4. Enable GitHub Actions
+1. Go to the **Actions** tab in your GitHub repository.
+2. Select either **Douban to Simkl Sync** or **Douban to NeoDB Sync** from the left sidebar.
+3. Enable the workflow and click **Run workflow** to trigger the initial sync manually.
+4. After the first run, the workflows will run automatically every 6 hours.
