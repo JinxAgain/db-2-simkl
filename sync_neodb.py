@@ -39,7 +39,7 @@ def fetch_rss(douban_id):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, timeout=15)
     response.raise_for_status()
     return response.text
 
@@ -230,7 +230,7 @@ def main():
     args = parser.parse_args()
 
     access_token = os.environ.get("NEODB_ACCESS_TOKEN")
-    instance_domain = os.environ.get("NEODB_INSTANCE_DOMAIN", "neodb.social")
+    instance_domain = os.environ.get("NEODB_INSTANCE_DOMAIN") or "neodb.social"
     
     if not args.dry_run and not access_token:
         print("Error: NEODB_ACCESS_TOKEN is not set. Skipping NeoDB sync.")
