@@ -2,7 +2,7 @@ name: Douban to NeoDB Sync
 
 on:
   schedule:
-    - cron: '30 */6 * * *' # Run every 6 hours (offset by 30 mins from Simkl sync)
+    - cron: '30 * * * *' # Run hourly (offset by 30 mins from Simkl sync)
   workflow_dispatch: # Allow manual trigger
 
 permissions:
