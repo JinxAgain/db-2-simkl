@@ -8,14 +8,14 @@ This repository contains two independent, automatic synchronization tools powere
 
 ### 🎬 Douban to Simkl Sync
 * **Script**: [`sync_simkl.py`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/sync_simkl.py)
-* **Workflow**: Runs every 6 hours and manually ([`douban_simkl_sync.yml`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/.github/workflows/douban_simkl_sync.yml))
+* **Workflow**: Runs hourly and manually ([`douban_simkl_sync.yml`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/.github/workflows/douban_simkl_sync.yml))
 * **Season-Level Accuracy**: Solves the common Douban problem where a TV show page only maps to the IMDb ID of a single episode. The script uses the TMDB API to resolve the parent show and season number, allowing Simkl to mark the correct season as watched.
 * **Fallbacks**: Searches TMDB by original/Chinese titles if Douban is missing the IMDb ID.
 * **Status History**: Saved in `sync_history.json`.
 
 ### 🌐 Douban to NeoDB Sync
 * **Script**: [`sync_neodb.py`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/sync_neodb.py)
-* **Workflow**: Runs every 6 hours and manually ([`douban_neodb_sync.yml`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/.github/workflows/douban_neodb_sync.yml))
+* **Workflow**: Runs hourly and manually ([`douban_neodb_sync.yml`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/.github/workflows/douban_neodb_sync.yml))
 * **Native Douban Mapping**: Directly queries NeoDB's catalog fetch API (`/api/catalog/fetch`) using the Douban URL to locate the exact item, avoiding metadata mismatch issues.
 * **Unlimited Comment Length**: NeoDB has no character limits on comments. The script uploads your full, untruncated Douban reviews and notes to your NeoDB timeline/shelf.
 * **Precise Ratings**: Extracts half-star ratings (e.g. `3.5` stars becomes `7` out of 10) directly from Douban notes.
@@ -86,4 +86,9 @@ If you want to sync to NeoDB, complete these steps:
 1. Go to the **Actions** tab in your GitHub repository.
 2. Select either **Douban to Simkl Sync** or **Douban to NeoDB Sync** from the left sidebar.
 3. Enable the workflow and click **Run workflow** to trigger the initial sync manually.
-4. After the first run, the workflows will run automatically every 6 hours.
+4. After the first run, the workflows will run automatically every hour.
+
+> [!NOTE]
+> **Why Hourly Execution?**
+> Douban's public RSS feed only keeps the 10 most recent actions (watched/wished items). Running the workflows hourly ensures that any new actions you mark are captured before they are pushed out of the RSS cache.
+> The scripts only commit changes back to the repository if new records are actually added, so hourly execution is quiet and won't create empty commits.
