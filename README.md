@@ -21,6 +21,13 @@ This repository contains two independent, automatic synchronization tools powere
 * **Precise Ratings**: Extracts half-star ratings (e.g. `3.5` stars becomes `7` out of 10) directly from Douban notes.
 * **Status History**: Saved in `sync_history_neodb.json`.
 
+### 📦 Douban Watch History Archive
+* **Script**: [`archive_douban.py`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/archive_douban.py)
+* **Workflow**: Runs hourly and manually ([`douban_archive.yml`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/.github/workflows/douban_archive.yml))
+* **Full Baseline & Incremental Append**: Starts with complete historical data exported from `douban_interests.xlsx` (via [`export_xlsx_to_jsonl.py`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/export_xlsx_to_jsonl.py)), then continuously appends new watch activities ("看过", "想看", "在看") to [`douban_archive.jsonl`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/douban_archive.jsonl).
+* **Precise Ratings & Deduplication**: Extracts half-star ratings and reviews, deduplicating against `sync_history_archive.json` and the archive file.
+* **Status History**: Saved in `sync_history_archive.json`.
+
 ---
 
 ## Setup Guide
