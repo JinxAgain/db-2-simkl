@@ -29,3 +29,6 @@ venv.bak/
 # System files
 .DS_Store
 Thumbs.db
+
+# Agent recommendation system files
+recommender_system/
