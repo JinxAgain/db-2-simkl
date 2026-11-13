@@ -24,7 +24,8 @@ This repository contains two independent, automatic synchronization tools powere
 ### 📦 Douban Watch History Archive
 * **Script**: [`archive_douban.py`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/archive_douban.py)
 * **Workflow**: Runs hourly and manually ([`douban_archive.yml`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/.github/workflows/douban_archive.yml))
-* **Full Baseline & Incremental Append**: Starts with complete historical data exported from `douban_interests.xlsx` (via [`export_xlsx_to_jsonl.py`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/export_xlsx_to_jsonl.py)), then continuously appends new watch activities ("看过", "想看", "在看") to [`douban_archive.jsonl`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/douban_archive.jsonl).
+* **Full Baseline & Hybrid Backfill**: Starts with complete historical data exported from `douban_interests.xlsx` (via [`export_xlsx_to_jsonl.py`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/export_xlsx_to_jsonl.py)), then combines **Douban RSS** with **Frodo Mobile API backfill** (`type=movie` across `看过`, `在看`, `想看`) to overcome the 10-item RSS truncation window and enrich metadata (`intro`, `douban_rating`, `tags`) into [`douban_archive.jsonl`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/douban_archive.jsonl).
+* **Configurable 50 / 100 Backfill Limit**: Configure `frodo_backfill_enabled` and `frodo_backfill_limit` (`50` or `100` per status, automatically paginating in 50-item pages) in [`config.json`](file:///c:/Users/Barba/Documents/Git/db-2-simkl/config.json), pass `--frodo-limit 50|100` on the CLI (or `--no-frodo` to use RSS only), or choose `50`/`100` directly when triggering the GitHub Actions workflow manually.
 * **Precise Ratings & Deduplication**: Extracts half-star ratings and reviews, deduplicating against `sync_history_archive.json` and the archive file.
 * **Status History**: Saved in `sync_history_archive.json`.
 

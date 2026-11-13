@@ -1,4 +1,6 @@
 {
   "douban_id": "137859347",
-  "sync_delay_seconds": 2
+  "sync_delay_seconds": 2,
+  "frodo_backfill_enabled": true,
+  "frodo_backfill_limit": 50
 }

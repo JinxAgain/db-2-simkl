@@ -36,3 +36,6 @@ recommender_system/
 # Nested repositories (e.g. friend repo clone)
 db-2-simkl/
 
+# Agents and skills
+.agents
+skills-lock.json

@@ -4,6 +4,17 @@ on:
   schedule:
     - cron: '21 * * * *' # Run hourly at minute 21 (off-peak to avoid global queue delays)
   workflow_dispatch: # Allow manual trigger
+    inputs:
+      frodo_limit:
+        description: 'Frodo API backfill limit per status (done/doing/mark)'
+        required: false
+        default: 'default (from config.json)'
+        type: choice
+        options:
+          - 'default (from config.json)'
+          - '50'
+          - '100'
+          - '0 (disable Frodo)'
 
 permissions:
   contents: write
@@ -26,7 +37,15 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run archive script
-        run: python archive_douban.py
+        run: |
+          LIMIT="${{ github.event.inputs.frodo_limit }}"
+          if [ "$LIMIT" = "50" ] || [ "$LIMIT" = "100" ]; then
+            python archive_douban.py --frodo-limit "$LIMIT"
+          elif [ "$LIMIT" = "0 (disable Frodo)" ]; then
+            python archive_douban.py --no-frodo
+          else
+            python archive_douban.py
+          fi
 
       - name: Commit and push changes
         run: |

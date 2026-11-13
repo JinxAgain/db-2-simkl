@@ -40,7 +40,12 @@ jobs:
               print("Error: douban_id cannot be empty!")
               sys.exit(1)
 
-          config = {"douban_id": douban_id, "sync_delay_seconds": 2}
+          config = {
+              "douban_id": douban_id,
+              "sync_delay_seconds": 2,
+              "frodo_backfill_enabled": True,
+              "frodo_backfill_limit": 50,
+          }
           with open("config.json", "w", encoding="utf-8") as f:
               json.dump(config, f, indent=2, ensure_ascii=False)
           print(f"Updated config.json with douban_id: {douban_id}")
